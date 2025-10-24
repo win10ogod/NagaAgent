@@ -1,6 +1,11 @@
-import sys, os
+import sys
+import os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # 加入项目根目录到模块查找路径
+
 from nagaagent_core.api import Flask, request, send_file, jsonify
+from openai import OpenAIError
+
 from voice.output.tts_handler import generate_speech
 from voice.output.utils import require_api_key, AUDIO_FORMAT_MIME_TYPES
 from system.config import config
@@ -17,12 +22,17 @@ def text_to_speech():
 
         text = data.get('input')
         voice = data.get('voice', config.tts.default_voice)
-        response_format = data.get('response_format', 'mp3')
+        response_format = data.get('response_format', config.tts.default_format)
+        model = data.get('model', getattr(config.tts, 'model', 'gpt-4o-mini-tts'))
         speed = float(data.get('speed', config.tts.default_speed))
-        
+
         mime_type = AUDIO_FORMAT_MIME_TYPES.get(response_format, "audio/mpeg")
-        output_file_path = generate_speech(text, voice, response_format, speed)
-        return send_file(output_file_path, mimetype=mime_type, as_attachment=True, download_name=f"speech.mp3")
+        output_file_path = generate_speech(text, voice, response_format, speed, model)
+        download_name = f"speech.{response_format}"
+        return send_file(output_file_path, mimetype=mime_type, as_attachment=True, download_name=download_name)
+    except OpenAIError as e:
+        status_code = getattr(e, "status_code", 502)
+        return jsonify({"error": "OpenAIError", "message": str(e)}), status_code
     except Exception as e:
         with open('voice_server_error.log', 'a') as f:
             f.write(f"Error at {__name__}: {str(e)}\n")
