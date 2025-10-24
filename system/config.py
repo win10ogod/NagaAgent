@@ -136,6 +136,8 @@ class BrowserConfig(BaseModel):
 class TTSConfig(BaseModel):
     """TTS服务配置"""
     api_key: str = Field(default="", description="TTS服务API密钥")
+    base_url: str = Field(default="https://api.openai.com/v1", description="TTS服务基础URL")
+    model: str = Field(default="gpt-4o-mini-tts", description="默认TTS模型")
     port: int = Field(default=5048, ge=1, le=65535, description="TTS服务端口")
     default_voice: str = Field(default="zh-CN-XiaoxiaoNeural", description="默认语音")
     default_format: str = Field(default="mp3", description="默认音频格式")
